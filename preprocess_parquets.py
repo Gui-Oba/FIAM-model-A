@@ -7,6 +7,9 @@ OUTPUT_ROOT = Path("processed_data2")
 ID_COLS = ["gvkey", "iid", "excntry"]
 GROUP_CHOICES = [["year", "month"], ["year", "month"]]
 
+YEAR_DTYPE = pd.Int32Dtype()
+MONTH_DTYPE = pd.Int32Dtype()
+
 LOW_PCT = 0.01
 HIGH_PCT = 0.99
 RET_CLIP_LOW = -1.0
@@ -42,6 +45,24 @@ def cols_to_winsorize(all_num_cols):
     return wins, hard
 
 
+def _coerce_month_keys(df: pd.DataFrame, month_dir: Path) -> None:
+    """Ensure partition columns (`year`, `month`, `y`, `m`) are numeric and consistent."""
+
+    def ensure_col(col_name: str, value: int, dtype) -> None:
+        if col_name in df.columns:
+            df[col_name] = pd.to_numeric(df[col_name], errors="coerce")
+            df[col_name] = df[col_name].fillna(value)
+        else:
+            df[col_name] = value
+        df[col_name] = df[col_name].astype(dtype)
+
+    year_val = int(month_dir.parent.name.split("=")[1])
+    month_val = int(month_dir.name.split("=")[1])
+
+    ensure_col("year", year_val, YEAR_DTYPE)
+    ensure_col("month", month_val, MONTH_DTYPE)
+
+
 def main():
     month_dirs = sorted(INPUT_ROOT.glob("year=*/month=*"))
     if not month_dirs:
@@ -66,11 +87,9 @@ def main():
                 group_cols = cols
                 break
         if group_cols is None:
-            y_val = int(month_dir.parent.name.split("=")[1])
-            m_val = int(month_dir.name.split("=")[1])
-            df["year"] = y_val
-            df["month"] = m_val
             group_cols = ["year","month"]
+
+        _coerce_month_keys(df, month_dir)
 
         num_cols = [c for c in df.select_dtypes(include="number").columns if c not in ID_COLS and c not in group_cols]
         win_cols, hard_cols = cols_to_winsorize(num_cols)
@@ -102,9 +121,7 @@ def main():
 
         # partitions
         if "year" in df: df["year"] = df["year"].astype("int32")
-        if "month" in df: df["month"] = df["month"].astype("int16")
-        if "y" in df: df["y"] = df["y"].astype("int32")
-        if "m" in df: df["m"] = df["m"].astype("int16")
+        if "month" in df: df["month"] = df["month"].astype("int32")
 
         # features: force float32 everywhere so NaN is allowed and schemas match
         num_cols_all = df.select_dtypes(include="number").columns.tolist()
