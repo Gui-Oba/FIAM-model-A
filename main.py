@@ -3,6 +3,7 @@
 from final_parquetization import parquetization
 from final_preprocessing import preprocessing
 from final_model import model
+from final_portfolio import portfolio
 
 
 def main() -> None:
@@ -10,6 +11,7 @@ def main() -> None:
     parquetization()
     preprocessing()
     model()
+    portfolio()
 
 
 if __name__ == "__main__":
