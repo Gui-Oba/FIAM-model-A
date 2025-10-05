@@ -1,9 +1,0 @@
-pandas>=1.5
-numpy>=1.23
-scipy>=1.9
-scikit-learn>=1.2
-lightgbm>=4.0
-xgboost>=1.7
-statsmodels>=0.14
-duckdb>=0.9
-pyarrow>=10.0
